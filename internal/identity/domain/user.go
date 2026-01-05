@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"database/sql/driver"
 	"errors"
 
 	"github.com/google/uuid"
@@ -17,15 +18,15 @@ const (
 )
 
 type User struct {
-	ID         UserID
-	Name       string
-	Email      Email
-	Password   Password
-	Role       Role
-	Occupation string
+	id         UserID
+	name       string
+	email      Email
+	password   Password
+	role       Role
+	occupation string
 	avatar     string
-	IsActive   bool
-	IsVerified bool
+	isActive   bool
+	isVerified bool
 }
 
 func RegisterUser(id UserID, name, email string) (*User, []any, error) {
@@ -44,15 +45,15 @@ func RegisterUser(id UserID, name, email string) (*User, []any, error) {
 		return u, nil, err
 	}
 
-	u.ID = id
-	u.Name = name
-	u.Email = e
-	u.Occupation = "Developer"
-	u.IsActive = true
-	u.IsVerified = true
-	u.Role = RoleUser
+	u.id = id
+	u.name = name
+	u.email = e
+	u.occupation = "Developer"
+	u.isActive = true
+	u.isVerified = true
+	u.role = RoleUser
 
-	return u, []any{UserRegistered{ID: u.ID, Email: u.Email.Value()}}, nil
+	return u, []any{UserRegistered{ID: u.id, Email: u.email.Value()}}, nil
 }
 
 func (u *User) ChangePassword(password Password) error {
@@ -64,7 +65,7 @@ func (u *User) ChangePassword(password Password) error {
 		return errors.New("password is required")
 	}
 
-	u.Password = password
+	u.password = password
 	return nil
 }
 
@@ -102,7 +103,7 @@ func (u *User) ChangeName(name string) error {
 		return errors.New("name must be less than 100 characters")
 	}
 
-	u.Name = name
+	u.name = name
 	return nil
 }
 
@@ -123,7 +124,7 @@ func (u *User) ChangeOccupation(occupation string) error {
 		return errors.New("occupation must be less than 100 characters")
 	}
 
-	u.Occupation = occupation
+	u.occupation = occupation
 	return nil
 }
 
@@ -132,16 +133,8 @@ func (u *User) DeactivateUser() error {
 		return errors.New("user is not active")
 	}
 
-	u.IsActive = false
+	u.isActive = false
 	return nil
-}
-
-func (u *User) IsUserActive() bool {
-	return u.IsActive
-}
-
-func (u *User) IsUserVerified() bool {
-	return u.IsVerified
 }
 
 func (u *User) UpdateUser(name, email, occupation string) error {
@@ -162,14 +155,38 @@ func (u *User) UpdateUser(name, email, occupation string) error {
 		return err
 	}
 
-	u.Name = name
-	u.Email = e
-	u.Occupation = occupation
+	u.name = name
+	u.email = e
+	u.occupation = occupation
 	return nil
 }
 
-func (u *User) GetOccupation() string { return u.Occupation }
-func (u *User) GetName() string       { return u.Name }
-func (u *User) GetID() UserID         { return u.ID }
-func (u *User) GetEmail() string      { return u.Email.Value() }
-func (u *User) GetPassword() Password { return u.Password }
+func (u *User) IsUserActive() bool    { return u.isActive }
+func (u *User) IsUserVerified() bool  { return u.isVerified }
+func (u *User) GetAvatar() string     { return u.avatar }
+func (u *User) GetRole() Role         { return u.role }
+func (u *User) GetOccupation() string { return u.occupation }
+func (u *User) GetName() string       { return u.name }
+func (u *User) GetID() UserID         { return u.id }
+func (u *User) GetUUID() uuid.UUID    { return uuid.UUID(u.id) }
+func (u *User) GetEmail() string      { return u.email.Value() }
+func (u *User) GetPassword() Password { return u.password }
+func (id UserID) String() string {
+	uuid := uuid.UUID(id)
+	return uuid.String()
+}
+
+// Scan implements the sql.Scanner interface
+func (id *UserID) Scan(value interface{}) error {
+	var u uuid.UUID
+	if err := u.Scan(value); err != nil {
+		return err
+	}
+	*id = UserID(u)
+	return nil
+}
+
+// Value implements the driver.Valuer interface
+func (id UserID) Value() (driver.Value, error) {
+	return uuid.UUID(id).Value()
+}

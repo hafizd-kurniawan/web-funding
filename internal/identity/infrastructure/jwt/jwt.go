@@ -8,14 +8,14 @@ import (
 )
 
 type JWTToken struct {
-	secret string
+	Secret string
 }
 
 var _ domain.TokenGenerator = JWTToken{}
 
 func NewJWTToken(secret string) JWTToken {
 	return JWTToken{
-		secret: secret,
+		Secret: secret,
 	}
 }
 
@@ -25,10 +25,11 @@ func (t JWTToken) GenerateToken(userID domain.UserID) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 
-	signedToken, err := token.SignedString([]byte(t.secret))
+	signedToken, err := token.SignedString([]byte(t.Secret))
 	if err != nil {
 		return "", err
 	}
+
 	return signedToken, nil
 }
 
@@ -40,7 +41,7 @@ func (t JWTToken) ValidateToken(encodedToken string) (*jwt.Token, error) {
 			return nil, errors.New("invalid signing method")
 		}
 
-		return []byte(t.secret), nil
+		return []byte(t.Secret), nil
 	})
 
 	if err != nil {
